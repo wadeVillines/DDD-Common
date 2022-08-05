@@ -13,39 +13,47 @@ namespace DDD.Common.Persistence.EntityFramework
             _context = context;
         }
 
-        public Task AddAsync(TEntity entity)
+        public async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            await _context.Set<TEntity>().AddAsync(entity, cancellationToken);
+            await CommitAsync(cancellationToken);
         }
 
-        public Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
+        public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return await _context.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken);
         }
 
-        public Task<List<TEntity>> ListAsync(CancellationToken cancellationToken = default)
+        public async Task<List<TEntity>> ListAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return await _context.Set<TEntity>().ToListAsync(cancellationToken);
         }
 
-        public Task<List<TEntity>> ListAsync(Specification<TEntity> specification, CancellationToken cancellationToken = default)
+        public async Task<List<TEntity>> ListAsync(Specification<TEntity> specification, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return await _context.Set<TEntity>().Where(specification.ToExpression()).ToListAsync(cancellationToken);
         }
 
-        public Task RemoveAsync(TEntity entity)
+        public async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            _context.Set<TEntity>().Remove(entity);
+            await CommitAsync(cancellationToken);
         }
 
-        public Task UpdateAsync(TEntity entity)
+        public async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            _context.Set<TEntity>().Update(entity);
+            await CommitAsync(cancellationToken);
         }
 
-        public Task CommitAsync()
+        public async Task CommitAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            // persist entity to database
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // TODO: publish domain events
+
+            // TODO: implement transactional outbox pattern to prevent lost events
         }
     }
 }

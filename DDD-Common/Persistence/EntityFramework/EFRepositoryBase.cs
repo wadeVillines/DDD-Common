@@ -1,4 +1,6 @@
-﻿using DDD.Common.Specifications;
+﻿using DDD.Common.Events;
+using DDD.Common.Specifications;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace DDD.Common.Persistence.EntityFramework
@@ -7,10 +9,12 @@ namespace DDD.Common.Persistence.EntityFramework
         where TEntity : Entity<TKey>, IAggregateRoot
     {
         private readonly DbContext _context;
+        private readonly IMediator _mediator;
 
-        public EFRepositoryBase(DbContext context)
+        public EFRepositoryBase(DbContext context, IMediator mediator)
         {
             _context = context;
+            _mediator = mediator;
         }
 
         public async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -48,10 +52,23 @@ namespace DDD.Common.Persistence.EntityFramework
 
         public async Task CommitAsync(CancellationToken cancellationToken = default)
         {
+            // gather all domain events
+            var entities = _context.ChangeTracker.Entries<TEntity>()
+                .Select(x => x.Entity)
+                .ToList();
+
+            var domainEvents = entities
+                .SelectMany(x => x.DomainEvents)
+                .ToList();
+
+            entities.ForEach(x => x.ClearDomainEvents());
+
             // persist entity to database
             await _context.SaveChangesAsync(cancellationToken);
 
-            // TODO: publish domain events
+            // publish domain events
+            foreach (var domainEvent in domainEvents)
+                await _mediator.Publish(domainEvent, cancellationToken);
 
             // TODO: implement transactional outbox pattern to prevent lost events
         }

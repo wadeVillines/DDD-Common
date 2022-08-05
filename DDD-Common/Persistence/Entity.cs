@@ -33,6 +33,11 @@ namespace DDD.Common.Persistence
             _domainEvents.Add(domainEvent);
         }
 
+        public void ClearDomainEvents()
+        {
+            _domainEvents.Clear();
+        }
+
         public override bool Equals(object? obj)
         {
             if (obj is not Entity<TId> other)
